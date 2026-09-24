@@ -1,0 +1,16 @@
+{
+  "name": "moonlight",
+  "owner": {
+    "name": "Atharva Vichare",
+    "url": "https://github.com/atty57"
+  },
+  "description": "Moonlight: spend leftover weekly AI usage on your task queue overnight.",
+  "plugins": [
+    {
+      "name": "moonlight",
+      "source": "./",
+      "description": "Give your leftover weekly AI usage a night job: a cloud routine works through your task queue the night before your limit resets.",
+      "category": "productivity"
+    }
+  ]
+}

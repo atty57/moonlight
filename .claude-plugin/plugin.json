@@ -1,0 +1,13 @@
+{
+  "name": "moonlight",
+  "version": "0.1.0",
+  "description": "Give your leftover weekly AI usage a night job: on the last night before your limit resets, a cloud routine works through your task queue and leaves draft PRs.",
+  "author": {
+    "name": "Atharva Vichare",
+    "url": "https://github.com/atty57"
+  },
+  "homepage": "https://github.com/atty57/moonlight",
+  "repository": "https://github.com/atty57/moonlight",
+  "license": "MIT",
+  "keywords": ["routines", "usage-limits", "automation", "overnight", "task-queue"]
+}

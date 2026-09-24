@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Moonlight</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12162E"/>
+      <stop offset="1" stop-color="#2F2466"/>
+    </linearGradient>
+    <mask id="crescent">
+      <rect width="256" height="256" fill="#fff"/>
+      <circle cx="170" cy="86" r="58" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#sky)"/>
+  <circle cx="142" cy="110" r="64" fill="#F6E7B4" mask="url(#crescent)"/>
+  <g fill="#F6E7B4">
+    <path d="M196 100l4 8 8 4-8 4-4 8-4-8-8-4 8-4z"/>
+    <circle cx="62" cy="62" r="3.5"/>
+    <circle cx="214" cy="170" r="3"/>
+    <circle cx="94" cy="36" r="2.5"/>
+  </g>
+  <g fill="none" stroke="#8EE3C8" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 170l28 22-28 22"/>
+    <path d="M104 214h44"/>
+  </g>
+</svg>
