@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: JSON files parse
+        run: jq empty .claude-plugin/*.json skills/setup/templates/*.json
+
+      - name: Status line script passes shellcheck
+        run: shellcheck skills/setup/scripts/statusline.sh
+
+      - name: Status line saves usage data
+        run: |
+          export CLAUDE_CONFIG_DIR="$RUNNER_TEMP/cfg"
+          echo '{"model":{"display_name":"Test"},"rate_limits":{"five_hour":{"used_percentage":12,"resets_at":1790269800},"seven_day":{"used_percentage":41,"resets_at":1790265600}}}' \
+            | bash skills/setup/scripts/statusline.sh
+          jq -e '.rate_limits.seven_day.resets_at == 1790265600' "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
