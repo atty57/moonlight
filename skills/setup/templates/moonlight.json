@@ -2,6 +2,7 @@
   "timezone": "America/New_York",
   "weekly_reset": "Thu 09:00",
   "stop_at": "Thu 07:00",
+  "stop_at_utc": "Thu 11:00",
   "runs": ["Wed 23:00", "Thu 04:15"],
   "next_id": 1
 }
