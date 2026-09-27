@@ -15,14 +15,37 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: JSON files parse
-        run: jq empty .claude-plugin/*.json skills/setup/templates/*.json
+        run: jq empty .claude-plugin/*.json skills/setup/templates/*.json tests/*.json
 
       - name: Status line script passes shellcheck
         run: shellcheck skills/setup/scripts/statusline.sh
 
+      # tests/statusline-input.json is a sample of what Claude Code sends a status line command.
       - name: Status line saves usage data
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/with-limits
         run: |
-          export CLAUDE_CONFIG_DIR="$RUNNER_TEMP/cfg"
-          echo '{"model":{"display_name":"Test"},"rate_limits":{"five_hour":{"used_percentage":12,"resets_at":1790269800},"seven_day":{"used_percentage":41,"resets_at":1790265600}}}' \
-            | bash skills/setup/scripts/statusline.sh
-          jq -e '.rate_limits.seven_day.resets_at == 1790265600' "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
+          out=$(bash skills/setup/scripts/statusline.sh < tests/statusline-input.json)
+          echo "$out"
+          jq -e '.rate_limits.seven_day.resets_at == 1790265600 and .rate_limits.five_hour.used_percentage == 12' \
+            "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
+          grep -q '7d 41%' <<<"$out"
+
+      - name: Status line without usage data saves nothing
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/no-limits
+        run: |
+          out=$(jq 'del(.rate_limits)' tests/statusline-input.json | bash skills/setup/scripts/statusline.sh)
+          echo "$out"
+          test -n "$out"
+          test ! -e "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
+
+      - name: Status line hands its input to the previous status line
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/chained
+        run: |
+          mkdir -p "$CLAUDE_CONFIG_DIR/moonlight"
+          printf '%s' 'jq -r .model.display_name' > "$CLAUDE_CONFIG_DIR/moonlight/chain"
+          out=$(bash skills/setup/scripts/statusline.sh < tests/statusline-input.json)
+          test "$out" = "Test Model"
+          test -e "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
