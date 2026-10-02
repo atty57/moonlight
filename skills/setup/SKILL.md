@@ -26,12 +26,12 @@ One AskUserQuestion call:
 1. **Repos** (multi-select): "Which repos may Moonlight work on?" Offer up to four: repos from the arguments, this folder's GitHub remote, then recently pushed, unarchived repos from `gh repo list`. Add a "None for now" option if you have fewer than two. The user can type more; writing and research tasks need no repo.
 2. **Sleep window**: "When are you usually asleep? Moonlight runs only then." Options: 23:00–07:00 (Recommended), 00:00–08:00, 22:00–06:00.
 3. **Usage credits**: "Is extra usage (usage credits) off at claude.ai/settings/usage? If it's on, a run that uses up your limit keeps going on paid overage." Options: It's off / I'll turn it off now / Keep it on, I accept overage charges.
-4. **Status line** (skip if `MOON_DIR/usage.json` exists): "Show weekly usage in your status line? This lets Moonlight read your reset time. An existing status line keeps working." Options: Yes (Recommended) / No, I'll type my reset time.
+4. **Status line** (skip if `MOON_DIR/usage.json` holds a reading under a day old, as in step 3.2): "Show weekly usage in your status line? This lets Moonlight read your reset time. An existing status line keeps working." Options: Yes (Recommended) / No, I'll type my reset time.
 
 ## 3. Find the timezone and weekly reset
 
 1. Timezone, as an IANA name like `America/New_York`: macOS `readlink /etc/localtime`; Linux `timedatectl show -p Timezone --value`; Windows `powershell -NoProfile -Command "[TimeZoneInfo]::Local.Id"`, mapped from the Windows name to IANA.
-2. Reset time: if the user chose the status line, follow `SKILL_DIR/statusline-install.md`, which ends with the reset as a weekday and time. Otherwise, or if that doesn't produce one, ask the user for the weekly reset shown by `/usage` or at claude.ai/settings/usage.
+2. Reset time: if `MOON_DIR/usage.json` already exists and its `saved_at` is under a day old, read `rate_limits.seven_day.resets_at` from it and convert it as step 7 of `SKILL_DIR/statusline-install.md` does. An older reading means the status line stopped refreshing it, so treat it as missing: a stale `resets_at` still looks right after the reset has moved. Otherwise, if the user chose the status line, follow that file, which ends with the reset as a weekday and time. Only if neither produces one, ask the user for the weekly reset shown by `/usage` or at claude.ai/settings/usage.
 
 ## 4. Plan the runs
 
@@ -78,7 +78,7 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Schedule**: a weekly cron in UTC for each run time. Convert the local weekday and time, and show the user the conversion.
 - **Prompt**: the full text of `SKILL_DIR/templates/routine-prompt.md`, unchanged. It reads everything user-specific from `moonlight.json`.
 - **Repositories**: the queue repo first, then each repo from step 2, as `https://github.com/owner/name` URLs.
-- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet).
+- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet). Drop any context suffix in brackets first: `claude-opus-5-5[1m]` goes in as `claude-opus-5-5`.
 - **Allowed tools**: `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`.
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
