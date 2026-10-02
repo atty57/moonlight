@@ -31,7 +31,7 @@ One AskUserQuestion call:
 ## 3. Find the timezone and weekly reset
 
 1. Timezone, as an IANA name like `America/New_York`: macOS `readlink /etc/localtime`; Linux `timedatectl show -p Timezone --value`; Windows `powershell -NoProfile -Command "[TimeZoneInfo]::Local.Id"`, mapped from the Windows name to IANA.
-2. Reset time: if the user chose the status line, follow `SKILL_DIR/statusline-install.md`, which ends with the reset as a weekday and time. Otherwise, or if that doesn't produce one, ask the user for the weekly reset shown by `/usage` or at claude.ai/settings/usage.
+2. Reset time: if `MOON_DIR/usage.json` already exists, read `rate_limits.seven_day.resets_at` from it and convert it as step 7 of `SKILL_DIR/statusline-install.md` does. Otherwise, if the user chose the status line, follow that file, which ends with the reset as a weekday and time. Only if neither produces one, ask the user for the weekly reset shown by `/usage` or at claude.ai/settings/usage.
 
 ## 4. Plan the runs
 
@@ -78,7 +78,7 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Schedule**: a weekly cron in UTC for each run time. Convert the local weekday and time, and show the user the conversion.
 - **Prompt**: the full text of `SKILL_DIR/templates/routine-prompt.md`, unchanged. It reads everything user-specific from `moonlight.json`.
 - **Repositories**: the queue repo first, then each repo from step 2, as `https://github.com/owner/name` URLs.
-- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet).
+- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet). Drop any context suffix in brackets first: `claude-opus-5-5[1m]` goes in as `claude-opus-5-5`.
 - **Allowed tools**: `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`.
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
