@@ -18,21 +18,58 @@ case "$limits" in
     ;;
 esac
 
-# Show the status line the user had before Moonlight, unchanged.
-if [ -s "$moon_dir/chain" ]; then
-  printf '%s' "$input" | bash -c "$(cat "$moon_dir/chain")"
-  exit $?
-fi
-
-# Otherwise: [Model] 5h 12% · 7d 41% · resets Thu 09:00
 window() { printf '%s' "$limits" | grep -Eo "\"$1\"[[:space:]]*:[[:space:]]*\\{[^{}]*\\}" | head -n 1; }
 number() { printf '%s' "$1" | grep -Eo "\"$2\"[[:space:]]*:[[:space:]]*[0-9.]+" | head -n 1 | grep -Eo '[0-9.]+$'; }
 
+# "Thu 13:00" -> minutes into the week, for comparing a weekday label with a timestamp.
+label_minutes() {
+  case "$1" in
+    Mon*) day=0 ;; Tue*) day=1 ;; Wed*) day=2 ;; Thu*) day=3 ;;
+    Fri*) day=4 ;; Sat*) day=5 ;; Sun*) day=6 ;; *) return 1 ;;
+  esac
+  clock=${1#* }
+  hh=${clock%%:*}
+  mm=${clock##*:}
+  case "$hh$mm" in *[!0-9]*) return 1 ;; esac
+  # ${x#0} keeps 08 from being read as octal.
+  printf '%s' "$(( day * 1440 + ${hh#0} * 60 + ${mm#0} ))"
+}
+
+week_window=$(window seven_day)
+reset=$(number "$week_window" resets_at)
+
+# A moved weekly reset otherwise goes unnoticed until someone runs /moonlight:status,
+# while the runs keep firing on the old night and spend the start of the next week.
+# Compare the reset Claude Code reports with the one setup planned for, both in UTC.
+warn=""
+planned=$(grep -Eo '"reset_utc"[[:space:]]*:[[:space:]]*"[^"]*"' "$moon_dir/config.json" 2>/dev/null |
+  head -n 1 | sed -E 's/.*"([^"]*)"$/\1/')
+if [ -n "$planned" ] && [ -n "$reset" ]; then
+  actual=$(date -u -d "@$reset" '+%a %H:%M' 2>/dev/null || date -u -r "$reset" '+%a %H:%M' 2>/dev/null)
+  seen=$(label_minutes "$actual") || seen=""
+  want=$(label_minutes "$planned") || want=""
+  if [ -n "$seen" ] && [ -n "$want" ]; then
+    # Minutes apart, whichever way round the week is shorter; 30 matches /moonlight:status.
+    apart=$(( (seen - want + 10080) % 10080 ))
+    [ "$apart" -gt 5040 ] && apart=$(( 10080 - apart ))
+    if [ "$apart" -gt 30 ]; then
+      warn=" ⚠ reset moved, run /moonlight:status"
+    fi
+  fi
+fi
+
+# Show the status line the user had before Moonlight, with the warning appended.
+if [ -s "$moon_dir/chain" ]; then
+  chained=$(printf '%s' "$input" | bash -c "$(cat "$moon_dir/chain")")
+  chained_status=$?
+  printf '%s%s\n' "$chained" "$warn"
+  exit "$chained_status"
+fi
+
+# Otherwise: [Model] 5h 12% · 7d 41% · resets Thu 09:00
 model=$(printf '%s' "$flat" | grep -Eo '"display_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 | sed -E 's/.*"([^"]*)"$/\1/')
 five=$(number "$(window five_hour)" used_percentage)
-week_window=$(window seven_day)
 week=$(number "$week_window" used_percentage)
-reset=$(number "$week_window" resets_at)
 
 line="[${model:-Claude}]"
 [ -n "$five" ] && line="$line 5h $(LC_ALL=C printf '%.0f' "$five")%"
@@ -43,4 +80,4 @@ if [ -n "$week" ]; then
     [ -n "$when" ] && line="$line · resets $when"
   fi
 fi
-printf '%s\n' "$line"
+printf '%s%s\n' "$line" "$warn"

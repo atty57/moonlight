@@ -74,3 +74,34 @@ jobs:
           assert all(o % 15 == 0 for o in offsets.values()), offsets  # no zone is off by stray minutes
           print("offsets agree:", offsets)
           EOF
+
+      # A moved weekly reset is the one thing the routine can't see for itself, so it
+      # has to reach the status line - including the hand-off to a previous status line.
+      - name: Status line warns when the weekly reset has moved
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/moved-reset
+        run: |
+          mkdir -p "$CLAUDE_CONFIG_DIR/moonlight"
+          plan() { printf '{"reset_utc":"%s"}' "$1" > "$CLAUDE_CONFIG_DIR/moonlight/config.json"; }
+          quiet() { if line | grep -q 'reset moved'; then line; echo "unexpected warning"; exit 1; fi; }
+          loud() { if ! line | grep -q 'reset moved'; then line; echo "missing warning"; exit 1; fi; }
+
+          # The fixture's resets_at is Thu 16:00 UTC.
+          line() { bash skills/setup/scripts/statusline.sh < tests/statusline-input.json; }
+          plan "Thu 16:00" && quiet                 # the planned reset
+          plan "Thu 16:20" && quiet                 # within the 30-minute tolerance
+          plan "Thu 13:00" && loud                  # moved by hours
+          plan "Wed 16:00" && loud                  # moved by a day
+          rm "$CLAUDE_CONFIG_DIR/moonlight/config.json" && quiet   # no plan to compare with
+
+          # 1791157800 is Sun 23:50 UTC: a small gap across the Sunday/Monday wrap
+          # must not read as most of a week apart.
+          jq '.rate_limits.seven_day.resets_at = 1791157800' tests/statusline-input.json > "$CLAUDE_CONFIG_DIR/wrap.json"
+          line() { bash skills/setup/scripts/statusline.sh < "$CLAUDE_CONFIG_DIR/wrap.json"; }
+          plan "Mon 00:10" && quiet
+          plan "Mon 01:00" && loud
+
+          # The warning still shows when another status line command takes over.
+          printf '%s' 'jq -r .model.display_name' > "$CLAUDE_CONFIG_DIR/moonlight/chain"
+          plan "Mon 01:00" && loud
+          test "$(line)" = "Test Model ⚠ reset moved, run /moonlight:status"
