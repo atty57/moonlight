@@ -49,3 +49,28 @@ jobs:
           out=$(bash skills/setup/scripts/statusline.sh < tests/statusline-input.json)
           test "$out" = "Test Model"
           test -e "$CLAUDE_CONFIG_DIR/moonlight/usage.json"
+
+      # The template is the shape setup copies, so its UTC times must stay in step
+      # with its local ones. Which season the example assumes doesn't matter, only
+      # that both offsets agree: a typo in one of the four times breaks that.
+      - name: Config template's UTC times match its local ones
+        run: |
+          python3 - <<'EOF'
+          import json
+          days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+          cfg = json.load(open("skills/setup/templates/moonlight.json"))
+
+          def minutes(label):
+              day, clock = label.split()
+              hh, mm = clock.split(":")
+              return days.index(day) * 1440 + int(hh) * 60 + int(mm)
+
+          pairs = (("weekly_reset", "reset_utc"), ("stop_at", "stop_at_utc"))
+          offsets = {
+              utc: (minutes(cfg[utc]) - minutes(cfg[local])) % (7 * 1440)
+              for local, utc in pairs
+          }
+          assert len(set(offsets.values())) == 1, offsets
+          assert all(o % 15 == 0 for o in offsets.values()), offsets  # no zone is off by stray minutes
+          print("offsets agree:", offsets)
+          EOF

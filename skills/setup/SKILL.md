@@ -40,6 +40,7 @@ Sleep windows repeat daily. With weekly reset `R` and sleep window `S`–`E`:
 2. **Stop time**: whichever is earlier, `E` or 20 minutes before `R`.
 3. **Runs**: one at `S`, and a second at `S` + 5 h 15 min if that's at least an hour before the stop time. The second run gets a fresh 5-hour usage window; the extra 15 minutes clear the first window's end.
 4. **Awake gap**: if the reset comes more than 12 hours after the stop time, tell the user the runs will spend usage they could still use themselves that day, so they can pick a different night in step 5.
+5. **UTC**: `R` is a fixed UTC moment that recurs weekly, so convert it to UTC once and derive `reset_utc` and `stop_at_utc` from it. `weekly_reset`, `stop_at` and `runs` are local labels for the user, re-rendered after a clock change; nothing times a run off them.
 
 Check your plan against these (sleep 23:00–07:00):
 
@@ -63,7 +64,7 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
 1. Get the GitHub login from `gh api user --jq .login`, or ask.
 2. Create an **empty** private repo: `gh repo create <login>/moonlight-queue --private --description "Moonlight task queue"`, with no README. Without `gh`, ask the user to create it at https://github.com/new?name=moonlight-queue&visibility=private with "Add a README" unticked, and wait until they confirm.
-3. Build it in `MOON_DIR/queue`: `git init -b claude/queue`; copy `QUEUE.md`, `README.md` and `NIGHTLY_LOG.md` from `SKILL_DIR/templates/`; add an empty `outputs/.gitkeep`; write `moonlight.json` in the shape of `SKILL_DIR/templates/moonlight.json` with the real `timezone`, `weekly_reset`, `stop_at` and `runs`, `stop_at_utc` (the stop time converted to UTC, as for the crons in step 7), and `next_id: 1`. The routine reads only `stop_at_utc`, so it never depends on the cloud machine's timezone data.
+3. Build it in `MOON_DIR/queue`: `git init -b claude/queue`; copy `QUEUE.md`, `README.md` and `NIGHTLY_LOG.md` from `SKILL_DIR/templates/`; add an empty `outputs/.gitkeep`; write `moonlight.json` in the shape of `SKILL_DIR/templates/moonlight.json` with the real `timezone`, `weekly_reset`, `stop_at` and `runs`, `reset_utc` and `stop_at_utc` (the reset and stop time converted to UTC, as for the crons in step 7), and `next_id: 1`. The routine reads only `stop_at_utc`, so it never depends on the cloud machine's timezone data.
 4. Commit, add the remote (SSH if the user's other clones use SSH, HTTPS otherwise), and `git push -u origin claude/queue`.
 5. The first branch pushed to an empty repo becomes its default. Confirm with `gh repo view <repo> --json defaultBranchRef`; if it isn't `claude/queue`, run `gh repo edit <repo> --default-branch claude/queue`. The queue lives on a `claude/` branch because cloud routines can always push to those.
 
@@ -92,7 +93,7 @@ This step is done when every routine exists and you have its ID and URL (`https:
 1. Write `MOON_DIR/config.json`:
 
        {"queue_repo": "<login>/moonlight-queue", "queue_dir": "<MOON_DIR>/queue", "timezone": "America/New_York",
-        "weekly_reset": "Thu 09:00", "stop_at": "Thu 07:00", "runs": ["Wed 23:00", "Thu 04:15"],
+        "weekly_reset": "Thu 09:00", "reset_utc": "Thu 13:00", "stop_at": "Thu 07:00", "runs": ["Wed 23:00", "Thu 04:15"],
         "sleep": "23:00-07:00", "repos": ["owner/app"],
         "routines": [{"name": "Moonlight", "id": "...", "url": "..."}, {"name": "Moonlight (2nd run)", "id": "...", "url": "..."}],
         "statusline": true, "usage_credits": "off", "created": "2026-09-24"}
