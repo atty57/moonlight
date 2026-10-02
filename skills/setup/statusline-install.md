@@ -1,6 +1,6 @@
 # Install the Moonlight status line
 
-Claude Code passes usage data (`rate_limits`) only to status line commands. Moonlight's script saves that object to `MOON_DIR/usage.json`, then runs the user's previous status line command if there was one, so their status line looks the same as before.
+Claude Code passes usage data (`rate_limits`) only to status line commands. Moonlight's script saves that object to `MOON_DIR/usage.json`, then runs the user's previous status line command if there was one, so their status line looks the same as before. It also compares the reset it sees with `reset_utc` in `MOON_DIR/config.json` and appends `⚠ reset moved, run /moonlight:status` when they are more than 30 minutes apart, on either status line; the routine can't see this for itself.
 
 1. **Shell check.** The script needs bash. On Windows, continue only if Git Bash is installed (your Bash tool runs through it); otherwise skip this file and ask the user for their reset time.
 2. Copy `SKILL_DIR/scripts/statusline.sh` to `MOON_DIR/statusline.sh` and make it executable. Confirm `echo '{}' | MOON_DIR/statusline.sh` prints a line.
