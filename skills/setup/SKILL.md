@@ -25,7 +25,7 @@ Paths used below; resolve each to an absolute path once, with the shell:
 One AskUserQuestion call:
 1. **Repos** (multi-select): "Which repos may Moonlight work on?" Offer up to four: repos from the arguments, this folder's GitHub remote, then recently pushed, unarchived repos from `gh repo list`. Add a "None for now" option if you have fewer than two. The user can type more; writing and research tasks need no repo.
 2. **Sleep window**: "When are you usually asleep? Moonlight runs only then." Options: 23:00–07:00 (Recommended), 00:00–08:00, 22:00–06:00.
-3. **Usage credits**: "Is extra usage (usage credits) off at claude.ai/settings/usage? If it's on, a run that uses up your limit keeps going on paid overage." Options: It's off / I'll turn it off now / Keep it on, I accept overage charges.
+3. **Usage credits**: "Is extra usage (usage credits) off at claude.ai/settings/usage? If it's on, a run that uses up your limit keeps going on paid overage." Options: It's off (Recommended) / I'll turn it off now / Keep it on, I accept overage charges.
 4. **Status line** (skip if `MOON_DIR/usage.json` holds a reading under a day old, as in step 3.2): "Show weekly usage in your status line? This lets Moonlight read your reset time. An existing status line keeps working." Options: Yes (Recommended) / No, I'll type my reset time.
 
 ## 3. Find the timezone and weekly reset
@@ -51,6 +51,8 @@ Check your plan against these (sleep 23:00–07:00):
 | Mon 00:30 | Sat 23:00, Sun 04:15 | Sun 07:00 |
 
 ## 5. Confirm
+
+If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off and wait here for that confirmation before going on. Their earlier promise isn't confirmation: don't create routines while it is pending. Record the confirmed answer as `usage_credits: "off"` in step 8's config; use `"on"` only when the user explicitly chose to accept overage charges.
 
 Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
@@ -109,4 +111,4 @@ Tell the user, in a few lines:
 - results arrive as draft PRs (code) and files in `outputs/` (writing), summarized in `NIGHTLY_LOG.md`, and `/moonlight:status` shows them;
 - **Run now** with the text `force` works the queue for up to 2 hours on any day;
 - `/moonlight:uninstall` turns it off;
-- if usage credits are still on, switch them off.
+- only if they explicitly kept usage credits on, remind them that a run which uses up the weekly limit carries on at overage rates; omit this reminder when they confirmed credits are off.
