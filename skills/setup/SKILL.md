@@ -58,9 +58,12 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
     Weekly reset:  Thu 09:00 (America/New_York)
     Runs:          Wed 23:00 and Thu 04:15, stopping by Thu 07:00
+    Model:         claude-opus-5-5
     Repos:         owner/app, owner/api
     Queue:         github.com/<login>/moonlight-queue (private, new)
     Routines:      "Moonlight" and "Moonlight (2nd run)" at claude.ai/code/routines, no connectors
+
+`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. If they choose "Change something", let them change the model and show the updated plan before creating routines.
 
 ## 6. Create the queue repo
 
@@ -85,7 +88,7 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Schedule**: a weekly cron in UTC for each run time. Convert the local weekday and time, and show the user the conversion.
 - **Prompt**: the full text of `SKILL_DIR/templates/routine-prompt.md`, unchanged. It reads everything user-specific from `moonlight.json`.
 - **Repositories**: the queue repo first, then each repo from step 2, as `https://github.com/owner/name` URLs.
-- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet). Drop any context suffix in brackets first: `claude-opus-5-5[1m]` goes in as `claude-opus-5-5`.
+- **Model**: the one confirmed in step 5 (the schedule skill otherwise defaults to Sonnet).
 - **Allowed tools**: `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`.
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
