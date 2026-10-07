@@ -67,10 +67,11 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
 3. Build it in `MOON_DIR/queue`: `git init -b claude/queue`; copy `QUEUE.md`, `README.md` and `NIGHTLY_LOG.md` from `SKILL_DIR/templates/`; add an empty `outputs/.gitkeep`; write `moonlight.json` in the shape of `SKILL_DIR/templates/moonlight.json` with the real `timezone`, `weekly_reset`, `stop_at` and `runs`, `reset_utc` and `stop_at_utc` (the reset and stop time converted to UTC, as for the crons in step 7), and `next_id: 1`. The routine reads only `stop_at_utc`, so it never depends on the cloud machine's timezone data.
 4. Commit, add the remote (SSH if the user's other clones use SSH, HTTPS otherwise), and `git push -u origin claude/queue`.
 5. The first branch pushed to an empty repo becomes its default. Confirm with `gh repo view <repo> --json defaultBranchRef`; if it isn't `claude/queue`, run `gh repo edit <repo> --default-branch claude/queue`. The queue lives on a `claude/` branch because cloud routines can always push to those.
+6. Make the repo visible to Claude: step 7's routines use it as a source, and a source the user's Claude GitHub App installation doesn't cover makes routine creation fail with a 403. If the app is installed for **All repositories**, it already covers it. Otherwise ask the user to add `moonlight-queue`, plus each repo from step 2, at https://github.com/settings/installations → Claude → Configure, and wait for them to confirm.
 
 To reuse an existing queue repo instead, clone it into `MOON_DIR/queue` and update its `moonlight.json` with the new plan, keeping `next_id`.
 
-This step is done when `claude/queue` is the default branch on GitHub and holds all four files.
+This step is done when `claude/queue` is the default branch on GitHub, holds all four files, and is covered by the user's Claude GitHub App installation.
 
 ## 7. Create the routines
 
@@ -84,7 +85,7 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
 
-If the schedule skill reports missing GitHub access, ask the user to run `/web-setup` or install the Claude GitHub App (https://github.com/apps/claude), then retry. If it isn't available or needs a claude.ai login (Claude Code signed in with an API key), use the web form instead: save the prompt to `MOON_DIR/routine-prompt.md`, copy it to the clipboard (`pbcopy`, `clip.exe`, `wl-copy` or `xclip`), open https://claude.ai/code/routines, give the user the settings above as form values, and wait for them to confirm.
+If creating a routine fails with a 403 whose `sub_reason` is `repo_access_denied` ("You don't have access to a repository this routine uses"), the Claude GitHub App is installed but doesn't cover every source. The error doesn't say which one, so have the user add all of them — the queue repo and each repo from step 2 — at https://github.com/settings/installations → Claude → Configure, then retry. Only when the app isn't installed at all, or the schedule skill reports no GitHub access, ask the user to run `/web-setup` or install it (https://github.com/apps/claude), then retry. If it isn't available or needs a claude.ai login (Claude Code signed in with an API key), use the web form instead: save the prompt to `MOON_DIR/routine-prompt.md`, copy it to the clipboard (`pbcopy`, `clip.exe`, `wl-copy` or `xclip`), open https://claude.ai/code/routines, give the user the settings above as form values, and wait for them to confirm.
 
 This step is done when every routine exists and you have its ID and URL (`https://claude.ai/code/routines/<ID>`).
 
