@@ -28,6 +28,10 @@ Request: $ARGUMENTS
        - done when: ...
        - notes: ...
 
-6. If the repo isn't in `repos`, add it to every Moonlight routine: RemoteTrigger `get`, then `update` with the repo's `https://github.com/owner/name` URL added to the routine's sources (load the tool with ToolSearch if it's deferred; failing that, ask the user to add it at https://claude.ai/code/routines). Then add it to `repos` in config.json.
+6. If the repo isn't in `repos`, add it to every Moonlight routine with the RemoteTrigger tool (load it with ToolSearch if it's deferred; failing that, ask the user to add the repo at https://claude.ai/code/routines and skip to step 7):
+   1. `get` the routine, then send `update` the **whole** `job_config` rebuilt from what you read — `environment_id`, `session_context` with its model, sources and allowed tools, and `events` with the prompt unchanged — with `https://github.com/owner/name` appended to the sources. Don't send the sources on their own: `update` is documented as a partial update at the top level, so a body holding only a nested `job_config.ccr.session_context.sources` may replace all of `job_config`. Note also that `get` returns the `session_request` shape, with the prompt under `events[].payload`, not the `job_config` shape that `update` takes.
+   2. `get` again and check the prompt, model, allowed tools and existing sources all survived. If any of them are gone, restore them with another `update` before moving on.
+
+   Then add the repo to `repos` in config.json.
 7. Commit (`moonlight: add MOON-7 <title>`) and push; if the push is rejected, pull with rebase and push again.
 8. Reply with the ID, the title and the next run's date and time.
