@@ -4,7 +4,7 @@ A usage limit can end this run at any moment, so **checkpoint** often. A checkpo
 
 ## 1. Orient
 
-1. The queue is the cloned repository with `moonlight.json` at its root; stay on its current branch, `claude/queue`. Read `moonlight.json` and `QUEUE.md`.
+1. The queue is the cloned repository with `moonlight.json` at its root. Commit and push every queue change to its `claude/queue` branch, even when this session was started on, or told to work from, a branch of its own: `/moonlight:add` and `/moonlight:status` read `claude/queue` only, and the next run looks there for `wip` state. If the clone is on another branch, `git checkout claude/queue` first. Read `moonlight.json` and `QUEUE.md`.
 2. Get the time in UTC: `date -u '+%a %F %H:%M'`. Work in UTC for the whole run, and write every time you put in a file as UTC with a `UTC` suffix.
 3. The **stop time** is the next occurrence of `stop_at_utc` (weekday and time, UTC) from moonlight.json.
 4. Manual run: if a routine-fire-payload block contains just the word `force`, set the stop time to 2 hours from now and go to section 2.
