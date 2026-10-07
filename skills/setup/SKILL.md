@@ -25,7 +25,7 @@ Paths used below; resolve each to an absolute path once, with the shell:
 One AskUserQuestion call:
 1. **Repos** (multi-select): "Which repos may Moonlight work on?" Offer up to four: repos from the arguments, this folder's GitHub remote, then recently pushed, unarchived repos from `gh repo list`. Add a "None for now" option if you have fewer than two. The user can type more; writing and research tasks need no repo.
 2. **Sleep window**: "When are you usually asleep? Moonlight runs only then." Options: 23:00–07:00 (Recommended), 00:00–08:00, 22:00–06:00.
-3. **Usage credits**: "Is extra usage (usage credits) off at claude.ai/settings/usage? If it's on, a run that uses up your limit keeps going on paid overage." Options: It's off / I'll turn it off now / Keep it on, I accept overage charges.
+3. **Usage credits**: "Is extra usage (usage credits) off at claude.ai/settings/usage? If it's on, a run that uses up your limit keeps going on paid overage." Options: It's off (Recommended) / I'll turn it off now / Keep it on, I accept overage charges.
 4. **Status line** (skip if `MOON_DIR/usage.json` holds a reading under a day old, as in step 3.2): "Show weekly usage in your status line? This lets Moonlight read your reset time. An existing status line keeps working." Options: Yes (Recommended) / No, I'll type my reset time.
 
 ## 3. Find the timezone and weekly reset
@@ -52,13 +52,18 @@ Check your plan against these (sleep 23:00–07:00):
 
 ## 5. Confirm
 
+If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off before going on. Nothing created so far can spend money; the routines can, and an unattended run that uses up the weekly limit then carries on at overage rates.
+
 Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
     Weekly reset:  Thu 09:00 (America/New_York)
     Runs:          Wed 23:00 and Thu 04:15, stopping by Thu 07:00
+    Model:         claude-opus-5-5
     Repos:         owner/app, owner/api
     Queue:         github.com/<login>/moonlight-queue (private, new)
     Routines:      "Moonlight" and "Moonlight (2nd run)" at claude.ai/code/routines, no connectors
+
+`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. It is what the runs cost, so it belongs in the plan.
 
 ## 6. Create the queue repo
 
@@ -68,6 +73,7 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
 4. Commit, add the remote (SSH if the user's other clones use SSH, HTTPS otherwise), and `git push -u origin claude/queue`.
 5. The first branch pushed to an empty repo becomes its default. Confirm with `gh repo view <repo> --json defaultBranchRef`; if it isn't `claude/queue`, run `gh repo edit <repo> --default-branch claude/queue`. The queue lives on a `claude/` branch because cloud routines can always push to those.
 6. Make the repo visible to Claude: step 7's routines use it as a source, and a source the user's Claude GitHub App installation doesn't cover makes routine creation fail with a 403. If the app is installed for **All repositories**, it already covers it. Otherwise ask the user to add `moonlight-queue`, plus each repo from step 2, at https://github.com/settings/installations → Claude → Configure, and wait for them to confirm.
+7. Write `MOON_DIR/config.json` now, in the shape step 8 gives but with `routines: []`. By this point setup has swapped the status line and created a repo; without this file, `/moonlight:uninstall` has nothing to undo them from if step 7 doesn't finish.
 
 To reuse an existing queue repo instead, clone it into `MOON_DIR/queue` and update its `moonlight.json` with the new plan, keeping `next_id`.
 
@@ -80,7 +86,7 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Schedule**: a weekly cron in UTC for each run time. Convert the local weekday and time, and show the user the conversion.
 - **Prompt**: the full text of `SKILL_DIR/templates/routine-prompt.md`, unchanged. It reads everything user-specific from `moonlight.json`.
 - **Repositories**: the queue repo first, then each repo from step 2, as `https://github.com/owner/name` URLs.
-- **Model**: this session's model unless the user picked another (the schedule skill otherwise defaults to Sonnet). Drop any context suffix in brackets first: `claude-opus-5-5[1m]` goes in as `claude-opus-5-5`.
+- **Model**: the one confirmed in step 5 (the schedule skill otherwise defaults to Sonnet).
 - **Allowed tools**: `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`.
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
@@ -91,7 +97,7 @@ This step is done when every routine exists and you have its ID and URL (`https:
 
 ## 8. Save and smoke-test
 
-1. Write `MOON_DIR/config.json`:
+1. Add `routines` to the `MOON_DIR/config.json` written in step 6, and check the rest still matches the plan. The whole file:
 
        {"queue_repo": "<login>/moonlight-queue", "queue_dir": "<MOON_DIR>/queue", "timezone": "America/New_York",
         "weekly_reset": "Thu 09:00", "reset_utc": "Thu 13:00", "stop_at": "Thu 07:00", "runs": ["Wed 23:00", "Thu 04:15"],
@@ -109,4 +115,4 @@ Tell the user, in a few lines:
 - results arrive as draft PRs (code) and files in `outputs/` (writing), summarized in `NIGHTLY_LOG.md`, and `/moonlight:status` shows them;
 - **Run now** with the text `force` works the queue for up to 2 hours on any day;
 - `/moonlight:uninstall` turns it off;
-- if usage credits are still on, switch them off.
+- if they kept usage credits on, a run that uses up the weekly limit carries on at overage rates.
