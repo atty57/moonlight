@@ -52,7 +52,7 @@ Check your plan against these (sleep 23:00–07:00):
 
 ## 5. Confirm
 
-If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off before going on. Nothing created so far can spend money; the routines can, and an unattended run that uses up the weekly limit then carries on at overage rates.
+If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off and wait here for that confirmation before going on. Their earlier promise isn't confirmation: don't create routines while it is pending — nothing created so far can spend money, but the routines can, and an unattended run that uses up the weekly limit then carries on at overage rates. Record the confirmed answer as `usage_credits: "off"` in step 8's config; use `"on"` only when the user explicitly chose to accept overage charges.
 
 Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
@@ -63,7 +63,7 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
     Queue:         github.com/<login>/moonlight-queue (private, new)
     Routines:      "Moonlight" and "Moonlight (2nd run)" at claude.ai/code/routines, no connectors
 
-`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. It is what the runs cost, so it belongs in the plan.
+`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. It is what the runs cost, so it belongs in the plan. If they choose "Change something", let them change the model and show the updated plan before creating routines.
 
 ## 6. Create the queue repo
 
@@ -72,12 +72,14 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
 3. Build it in `MOON_DIR/queue`: `git init -b claude/queue`; copy `QUEUE.md`, `README.md` and `NIGHTLY_LOG.md` from `SKILL_DIR/templates/`; add an empty `outputs/.gitkeep`; write `moonlight.json` in the shape of `SKILL_DIR/templates/moonlight.json` with the real `timezone`, `weekly_reset`, `stop_at` and `runs`, `reset_utc` and `stop_at_utc` (the reset and stop time converted to UTC, as for the crons in step 7), and `next_id: 1`. The routine reads only `stop_at_utc`, so it never depends on the cloud machine's timezone data.
 4. Commit, add the remote (SSH if the user's other clones use SSH, HTTPS otherwise), and `git push -u origin claude/queue`.
 5. The first branch pushed to an empty repo becomes its default. Confirm with `gh repo view <repo> --json defaultBranchRef`; if it isn't `claude/queue`, run `gh repo edit <repo> --default-branch claude/queue`. The queue lives on a `claude/` branch because cloud routines can always push to those.
-6. Make the repo visible to Claude: step 7's routines use it as a source, and a source the user's Claude GitHub App installation doesn't cover makes routine creation fail with a 403. If the app is installed for **All repositories**, it already covers it. Otherwise ask the user to add `moonlight-queue`, plus each repo from step 2, at https://github.com/settings/installations → Claude → Configure, and wait for them to confirm.
-7. Write `MOON_DIR/config.json` now, in the shape step 8 gives but with `routines: []`. By this point setup has swapped the status line and created a repo; without this file, `/moonlight:uninstall` has nothing to undo them from if step 7 doesn't finish.
 
 To reuse an existing queue repo instead, clone it into `MOON_DIR/queue` and update its `moonlight.json` with the new plan, keeping `next_id`.
 
-This step is done when `claude/queue` is the default branch on GitHub, holds all four files, and is covered by the user's Claude GitHub App installation.
+For either path, write `MOON_DIR/config.json` now in the shape step 8 gives, before waiting for GitHub App access or creating routines. Use `routines: []` for a first install; on reconfiguration, keep the existing routine entries until each one is updated. Record the queue and status line state so `/moonlight:uninstall` can recover if setup stops here.
+
+Make the repo visible to Claude: step 7's routines use it as a source, and a source the user's Claude GitHub App installation doesn't cover makes routine creation fail with a 403. If the app is installed for **All repositories**, it already covers it. Otherwise ask the user to add `moonlight-queue`, plus each repo from step 2, at https://github.com/settings/installations → Claude → Configure, and wait for them to confirm.
+
+This step is done when `claude/queue` is the default branch on GitHub, holds all four files, is covered by the user's Claude GitHub App installation, and the local config is saved.
 
 ## 7. Create the routines
 
@@ -91,13 +93,15 @@ Invoke the built-in `schedule` skill with the Skill tool, passing everything bel
 - **Connectors**: none; leave `mcp_connections` out. Moonlight needs only git.
 - **Environment**: the user's default cloud environment.
 
+As soon as each routine is created or updated, save its name, ID and URL in `MOON_DIR/config.json`, before attempting the next routine. Update its entry without dropping other routine IDs. This also applies to routines created through the web form: record each one as the user confirms it, so uninstall can switch it off even if setup stops before the next one.
+
 If creating a routine fails with a 403 whose `sub_reason` is `repo_access_denied` ("You don't have access to a repository this routine uses"), the Claude GitHub App is installed but doesn't cover every source. The error doesn't say which one, so have the user add all of them — the queue repo and each repo from step 2 — at https://github.com/settings/installations → Claude → Configure, then retry. Only when the app isn't installed at all, or the schedule skill reports no GitHub access, ask the user to run `/web-setup` or install it (https://github.com/apps/claude), then retry. If it isn't available or needs a claude.ai login (Claude Code signed in with an API key), use the web form instead: save the prompt to `MOON_DIR/routine-prompt.md`, copy it to the clipboard (`pbcopy`, `clip.exe`, `wl-copy` or `xclip`), open https://claude.ai/code/routines, give the user the settings above as form values, and wait for them to confirm.
 
 This step is done when every routine exists and you have its ID and URL (`https://claude.ai/code/routines/<ID>`).
 
 ## 8. Save and smoke-test
 
-1. Add `routines` to the `MOON_DIR/config.json` written in step 6, and check the rest still matches the plan. The whole file:
+1. Check that `MOON_DIR/config.json`, saved in step 6 and updated after each routine in step 7, matches the final plan and includes every routine. The whole file:
 
        {"queue_repo": "<login>/moonlight-queue", "queue_dir": "<MOON_DIR>/queue", "timezone": "America/New_York",
         "weekly_reset": "Thu 09:00", "reset_utc": "Thu 13:00", "stop_at": "Thu 07:00", "runs": ["Wed 23:00", "Thu 04:15"],
@@ -115,4 +119,4 @@ Tell the user, in a few lines:
 - results arrive as draft PRs (code) and files in `outputs/` (writing), summarized in `NIGHTLY_LOG.md`, and `/moonlight:status` shows them;
 - **Run now** with the text `force` works the queue for up to 2 hours on any day;
 - `/moonlight:uninstall` turns it off;
-- if they kept usage credits on, a run that uses up the weekly limit carries on at overage rates.
+- only if they explicitly kept usage credits on, remind them that a run which uses up the weekly limit carries on at overage rates; omit this reminder when they confirmed credits are off.
