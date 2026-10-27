@@ -52,7 +52,7 @@ Check your plan against these (sleep 23:00–07:00):
 
 ## 5. Confirm
 
-If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off and wait here for that confirmation before going on. Their earlier promise isn't confirmation: don't create routines while it is pending. Record the confirmed answer as `usage_credits: "off"` in step 8's config; use `"on"` only when the user explicitly chose to accept overage charges.
+If the user chose "I'll turn it off now" for usage credits in step 2, ask them to confirm it's off and wait here for that confirmation before going on. Their earlier promise isn't confirmation: don't create routines while it is pending — nothing created so far can spend money, but the routines can, and an unattended run that uses up the weekly limit then carries on at overage rates. Record the confirmed answer as `usage_credits: "off"` in step 8's config; use `"on"` only when the user explicitly chose to accept overage charges.
 
 Show the plan, then ask with AskUserQuestion (Create it / Change something):
 
@@ -63,7 +63,7 @@ Show the plan, then ask with AskUserQuestion (Create it / Change something):
     Queue:         github.com/<login>/moonlight-queue (private, new)
     Routines:      "Moonlight" and "Moonlight (2nd run)" at claude.ai/code/routines, no connectors
 
-`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. If they choose "Change something", let them change the model and show the updated plan before creating routines.
+`Model` is this session's model unless the user picked another, with any bracketed context suffix dropped: `claude-opus-5-5[1m]` shows as `claude-opus-5-5`. It is what the runs cost, so it belongs in the plan. If they choose "Change something", let them change the model and show the updated plan before creating routines.
 
 ## 6. Create the queue repo
 
